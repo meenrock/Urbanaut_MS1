@@ -1,6 +1,5 @@
 from __future__ import annotations
 import bentoml
-from src.data_input.repositories import shp_input
 
 with bentoml.importing():
     from transformers import pipeline
