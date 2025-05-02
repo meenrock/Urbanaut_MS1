@@ -1,0 +1,16 @@
+pip~=23.0.1
+panel~=1.4.5
+attrs~=25.3.0
+pillow~=11.2.1
+tornado~=6.4.2
+Jinja2~=3.1.2
+setuptools~=58.1.0
+bentoml~=1.4.7
+transformers~=4.51.3
+apache-sedona~=1.7.1
+pyspark~=3.5.5
+apache-airflow~=3.0.0
+colorlog~=6.9.0
+protobuf~=5.29.4
+cryptography~=44.0.2
+apache-airflow-providers-apache-spark
