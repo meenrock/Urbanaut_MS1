@@ -28,6 +28,18 @@ my_image = bentoml.images.PythonImage(python_version="3.11") \
     image=my_image,
     resources={"cpu": "2"},
     traffic={"timeout": 30},
+    http={
+        "cors": {
+            "enabled": True,
+            "access_control_allow_origins": ["http://localhost:4200", "https://myorg.com:8080"],
+            "access_control_allow_methods": ["GET", "OPTIONS", "POST", "HEAD", "PUT"],
+            "access_control_allow_credentials": True,
+            "access_control_allow_headers": ["*"],
+            "access_control_allow_origin_regex": "https://.*\.my_org\.com",
+            "access_control_max_age": 1200,
+            "access_control_expose_headers": ["Content-Length"]
+        }
+    }
 )
 class Summarization:
     # Define the Hugging Face model as a class variable
