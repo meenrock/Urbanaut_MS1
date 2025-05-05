@@ -4,6 +4,8 @@ from pandas import DataFrame
 
 from sklearn import svm
 
+from sklearn import datasets
+
 class SVMLandUseClassifier:
     def __init__(self):
         filePath = "D:/HighSpeedStorage/LVCHighSpd/MeenMookCoProject/POC/research/land-use-data/Landuse_bkk/กรุงเทพมหานคร2566/การใช้ที่ดิน/LU_BKK_2566.shp"
@@ -14,6 +16,14 @@ class SVMLandUseClassifier:
         print(data['Area_Sqm'])
         target_if_more_than_10000 = (self.data['Area_Sqm'] <= 10000)
         print(target_if_more_than_10000)
+
+        iris = datasets.load_iris()
+        X, y = iris.data, iris.target
+
+        clf = svm.SVC(gamma='scale')
+        clf.fit(X, y)
+
+        saved_model = bentoml.sklearn.save_model("iris_clf", clf)
 
     def train(self):
         geometry = self.data['geometry']
