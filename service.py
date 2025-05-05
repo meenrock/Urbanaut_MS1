@@ -35,8 +35,11 @@ class Summarization:
     def __init__(self) -> None:
         # Load model into pipeline
         self.pipeline = pipeline('summarization', model=self.model_path)
-    
+
     @bentoml.api
-    def summarize(self, text: str = EXAMPLE_INPUT) -> str:
+    def summarize(self, text: str = EXAMPLE_INPUT) -> dict[Any, str]:
         result = self.pipeline(text)
-        return f"Hello world! Here's your summary: {result[0]['summary_text']}"
+        resultExport = {
+            "result": f"Hello world! Here's your summary: {result[0]['summary_text']}"
+        }
+        return resultExport
