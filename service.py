@@ -6,8 +6,11 @@ from pandas import DataFrame
 from transformers import pipeline
 from typing import List, Any
 from bentoml.models import BentoModel
-from sklearn import datasets
+from sklearn import datasets, metrics
 import geopandas as gpd
+
+from src.data_processing.models.svm_land_use import SVMLandUseClassifier
+
 
 # Run two models in the same Service on the same hardware device
 @bentoml.service(
@@ -61,13 +64,20 @@ class MultiModelService:
         return resultExport
 
     @bentoml.api
-    def areasqmsvm(self,input_series: np.ndarray) -> np.ndarray:
-        filePath = "D:/HighSpeedStorage/LVCHighSpd/MeenMookCoProject/POC/research/land-use-data/Landuse_bkk/กรุงเทพมหานคร2566/การใช้ที่ดิน/LU_BKK_2566.shp"
+    def areasqmsvm(self,input_series: np.ndarray,retrain: bool) -> np.ndarray:
+        # filePath = "D:/HighSpeedStorage/LVCHighSpd/MeenMookCoProject/POC/research/land-use-data/Landuse_bkk/กรุงเทพมหานคร2566/การใช้ที่ดิน/LU_BKK_2566.shp"
+        filePath = "D:/HighSpeedStorage/LVCHighSpd/MeenMookCoProject/POC/research/land-use-data/Landuse_npt/นครปฐม2567/การใช้ที่ดิน/LU_NPT_2567.shp"
         data = gpd.read_file(filePath)
         area_sqm = data['Area_Sqm']
-        input_series = DataFrame({'area_sqm': area_sqm})
+        shape_area = data['Shape_Area']
+        target_if_more_than_10000 = (data['Area_Sqm'] <= 10000)
+        if retrain:
+            retrain_model = SVMLandUseClassifier()
+            retrain_model.train()
+        input_series = DataFrame({'area_sqm': area_sqm, 'shape_area': shape_area})
         area_sqm_pred_runner = bentoml.sklearn.load_model("area_sqm_svm_clf:latest")
         result = area_sqm_pred_runner.predict(input_series)
+        print('my score of real pred ', metrics.accuracy_score(target_if_more_than_10000, result))
         # result = self.area_sqm_svm_clf.predict.run(input_series)
         # return {
         #     "prediction": return_result.tolist(),
