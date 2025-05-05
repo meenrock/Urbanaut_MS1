@@ -1,56 +1,45 @@
-import datetime
-
 import bentoml
+import joblib
 import numpy as np
-from bentoml._internal.io_descriptors import NumpyNdarray
-from grpc import services
-from pandas import DataFrame
-import geopandas as gpd
-
-from sklearn import svm
+from bentoml.models import HuggingFaceModel
+from transformers import pipeline
+from typing import List
+from bentoml.models import BentoModel
 from sklearn import datasets
 
-from src.data_processing.models.svm_land_use import SVMLandUseClassifier
+# Run two models in the same Service on the same hardware device
+@bentoml.service(
+    resources={"cpu": 16,"gpu": 1, "memory": "4GiB"},
+    traffic={"timeout": 20},
+    http={"cors": {
+            "enabled": True,
+            "access_control_allow_origins": ["http://localhost:4200", "https://myorg.com:8080"],
+            "access_control_allow_methods": ["GET", "OPTIONS", "POST", "HEAD", "PUT"],
+            "access_control_allow_credentials": True,
+            "access_control_allow_headers": ["*"],
+            "access_control_allow_origin_regex": "https://.*\.my_org\.com",
+            "access_control_max_age": 1200,
+            "access_control_expose_headers": ["Content-Length"]
+    }}
+)
+class MultiModelService:
+    model_a_path = HuggingFaceModel("FacebookAI/roberta-large-mnli")
+    model_b_path = HuggingFaceModel("distilbert/distilbert-base-uncased")
 
-# Load training data set
-iris = datasets.load_iris()
-X, y = iris.data, iris.target
+    def __init__(self) -> None:
+        self.pipeline_a = pipeline(task="zero-shot-classification", model=self.model_a_path, hypothesis_template="This text is about {}")
+        self.pipeline_b = pipeline(task="sentiment-analysis", model=self.model_b_path)
 
-# Train the model
-clf = svm.SVC(gamma='scale')
-clf.fit(X, y)
+    @bentoml.api
+    def process_a(self, input_data: str, labels: List[str] = ["positive", "negative", "neutral"]) -> dict:
+        return self.pipeline_a(input_data, labels)
 
-my_model = SVMLandUseClassifier()
-my_model.train()
+    @bentoml.api
+    def process_b(self, input_data: str) -> dict:
+        return self.pipeline_b(input_data)[0]
 
-# Save model to the BentoML local Model Store
-saved_model = bentoml.sklearn.save_model("iris_clf", clf)
-
-iris_clf_runner = bentoml.sklearn.get("iris_clf:latest").to_runner()
-area_sqm_pred_runner = bentoml.sklearn.get("area_sqm_svm_clf:latest").to_runner()
-
-svc = bentoml.Service("iris_classifier",
-                      runners=[iris_clf_runner, area_sqm_pred_runner],
-                      )
-
-
-@svc.api(input=NumpyNdarray(), output=NumpyNdarray())
-def classify(input_series: np.ndarray) -> np.ndarray:
-    result = iris_clf_runner.predict.run(iris.data)
-    return result
-
-@svc.api(input=NumpyNdarray(), output=NumpyNdarray())
-def areasqmsvm(input_series: np.ndarray) -> np.ndarray:
-    # input_series: np.ndarray
-    filePath = "D:/HighSpeedStorage/LVCHighSpd/MeenMookCoProject/POC/research/land-use-data/Landuse_bkk/กรุงเทพมหานคร2566/การใช้ที่ดิน/LU_BKK_2566.shp"
-    data = gpd.read_file(filePath)
-    area_sqm = data['Area_Sqm']
-    input_series = DataFrame({'area_sqm': area_sqm})
-    result = area_sqm_pred_runner.predict.run(input_series)
-    # result = self.area_sqm_svm_clf.predict.run(input_series)
-    # return {
-    #     "prediction": return_result.tolist(),
-    #     "model": "trend_transformer",
-    #     "timestamp": datetime.datetime.now().isoformat()
-    #     }
-    return result
+    @bentoml.api
+    def test_iris(self) -> np.ndarray:
+        iris_clf_runner = bentoml.sklearn.load_model("iris_clf:latest")
+        iris = datasets.load_iris()
+        return iris_clf_runner.predict(iris.data)
