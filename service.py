@@ -4,6 +4,8 @@ from typing import Any
 
 import bentoml
 
+from src.data_processing.models.svm_land_use import SVMLandUseClassifier
+
 with bentoml.importing():
     from transformers import pipeline
     import sedona
@@ -22,6 +24,8 @@ to celebrate what is being hailed as 'The Leap of the Century."
 my_image = bentoml.images.PythonImage(python_version="3.11") \
         .python_packages("torch", "transformers")
 
+svm_clf = SVMLandUseClassifier()
+svm_clf.train()
 
 
 @bentoml.service(
@@ -58,3 +62,5 @@ class Summarization:
             "result": f"Hello world! Here's your summary: {result[0]['summary_text']}"
         }
         return resultExport
+
+    
