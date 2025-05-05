@@ -3,7 +3,7 @@ import joblib
 import numpy as np
 from bentoml.models import HuggingFaceModel
 from transformers import pipeline
-from typing import List
+from typing import List, Any
 from bentoml.models import BentoModel
 from sklearn import datasets
 
@@ -25,10 +25,12 @@ from sklearn import datasets
 class MultiModelService:
     model_a_path = HuggingFaceModel("FacebookAI/roberta-large-mnli")
     model_b_path = HuggingFaceModel("distilbert/distilbert-base-uncased")
+    model_c_path = bentoml.models.HuggingFaceModel("sshleifer/distilbart-cnn-12-6")
 
     def __init__(self) -> None:
         self.pipeline_a = pipeline(task="zero-shot-classification", model=self.model_a_path, hypothesis_template="This text is about {}")
         self.pipeline_b = pipeline(task="sentiment-analysis", model=self.model_b_path)
+        self.pipeline_c = pipeline('summarization', model=self.model_c_path)
 
     @bentoml.api
     def process_a(self, input_data: str, labels: List[str] = ["positive", "negative", "neutral"]) -> dict:
@@ -43,3 +45,15 @@ class MultiModelService:
         iris_clf_runner = bentoml.sklearn.load_model("iris_clf:latest")
         iris = datasets.load_iris()
         return iris_clf_runner.predict(iris.data)
+
+    @bentoml.api
+    def summarize(self, text: str) -> dict[Any, str]:
+        if text == "":
+            return {
+                "result": "The input text is empty",
+            }
+        result = self.pipeline_c(text)
+        resultExport = {
+            "result": f"Hello world! Here's your summary: {result[0]['summary_text']}"
+        }
+        return resultExport
