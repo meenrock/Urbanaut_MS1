@@ -14,3 +14,6 @@ colorlog~=6.9.0
 protobuf~=5.29.4
 cryptography~=44.0.2
 apache-airflow-providers-apache-spark
+fastapi~=0.115.12
+geopandas~=1.0.1
+matplotlib~=3.9.4
