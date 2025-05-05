@@ -2,10 +2,12 @@ import bentoml
 import joblib
 import numpy as np
 from bentoml.models import HuggingFaceModel
+from pandas import DataFrame
 from transformers import pipeline
 from typing import List, Any
 from bentoml.models import BentoModel
 from sklearn import datasets
+import geopandas as gpd
 
 # Run two models in the same Service on the same hardware device
 @bentoml.service(
@@ -57,3 +59,19 @@ class MultiModelService:
             "result": f"Hello world! Here's your summary: {result[0]['summary_text']}"
         }
         return resultExport
+
+    @bentoml.api
+    def areasqmsvm(self,input_series: np.ndarray) -> np.ndarray:
+        filePath = "D:/HighSpeedStorage/LVCHighSpd/MeenMookCoProject/POC/research/land-use-data/Landuse_bkk/กรุงเทพมหานคร2566/การใช้ที่ดิน/LU_BKK_2566.shp"
+        data = gpd.read_file(filePath)
+        area_sqm = data['Area_Sqm']
+        input_series = DataFrame({'area_sqm': area_sqm})
+        area_sqm_pred_runner = bentoml.sklearn.load_model("area_sqm_svm_clf:latest")
+        result = area_sqm_pred_runner.predict(input_series)
+        # result = self.area_sqm_svm_clf.predict.run(input_series)
+        # return {
+        #     "prediction": return_result.tolist(),
+        #     "model": "trend_transformer",
+        #     "timestamp": datetime.datetime.now().isoformat()
+        #     }
+        return result
