@@ -1,6 +1,8 @@
 from __future__ import annotations
+
+from typing import Any
+
 import bentoml
-from src.data_input.repositories import shp_input
 
 with bentoml.importing():
     from transformers import pipeline
@@ -26,6 +28,18 @@ my_image = bentoml.images.PythonImage(python_version="3.11") \
     image=my_image,
     resources={"cpu": "2"},
     traffic={"timeout": 30},
+    http={
+        "cors": {
+            "enabled": True,
+            "access_control_allow_origins": ["http://localhost:4200", "https://myorg.com:8080"],
+            "access_control_allow_methods": ["GET", "OPTIONS", "POST", "HEAD", "PUT"],
+            "access_control_allow_credentials": True,
+            "access_control_allow_headers": ["*"],
+            "access_control_allow_origin_regex": "https://.*\.my_org\.com",
+            "access_control_max_age": 1200,
+            "access_control_expose_headers": ["Content-Length"]
+        }
+    }
 )
 class Summarization:
     # Define the Hugging Face model as a class variable
@@ -36,8 +50,11 @@ class Summarization:
     def __init__(self) -> None:
         # Load model into pipeline
         self.pipeline = pipeline('summarization', model=self.model_path)
-    
+
     @bentoml.api
-    def summarize(self, text: str = EXAMPLE_INPUT) -> str:
+    def summarize(self, text: str = EXAMPLE_INPUT) -> dict[Any, str]:
         result = self.pipeline(text)
-        return f"Hello world! Here's your summary: {result[0]['summary_text']}"
+        resultExport = {
+            "result": f"Hello world! Here's your summary: {result[0]['summary_text']}"
+        }
+        return resultExport
