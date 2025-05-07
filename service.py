@@ -1,13 +1,15 @@
 import bentoml
-import joblib
 import numpy as np
 from bentoml.models import HuggingFaceModel
 from pandas import DataFrame
 from transformers import pipeline
 from typing import List, Any
-from bentoml.models import BentoModel
 from sklearn import datasets, metrics
 import geopandas as gpd
+import torchvision.transforms as transforms
+import torch
+from PIL import Image
+from bentoml.io import Image as BentoImage
 
 from src.data_processing.models.svm_land_use import SVMLandUseClassifier
 
@@ -31,6 +33,8 @@ class MultiModelService:
     model_a_path = HuggingFaceModel("FacebookAI/roberta-large-mnli")
     model_b_path = HuggingFaceModel("distilbert/distilbert-base-uncased")
     model_c_path = bentoml.models.HuggingFaceModel("sshleifer/distilbart-cnn-12-6")
+    input_spec = BentoImage()
+    output_spec = BentoImage()
 
     def __init__(self) -> None:
         self.pipeline_a = pipeline(task="zero-shot-classification", model=self.model_a_path, hypothesis_template="This text is about {}")
@@ -84,4 +88,33 @@ class MultiModelService:
         #     "model": "trend_transformer",
         #     "timestamp": datetime.datetime.now().isoformat()
         #     }
+        return result
+
+    # @bentoml.api(input_spec=input_spec, output_spec=output_spec)
+    def map_marking_semantic_segment(self, input_image):
+        with bentoml.importing():
+            parking_lot_marker = bentoml.pytorch.load_model("parkinglot_unet:latest")
+            model = parking_lot_marker.to('cuda')
+            model.eval()
+
+        preprocess = transforms.Compose([
+            transforms.Resize((256, 256)),  # Adjust size to match model's expected input
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        ])
+
+        input_tensor = preprocess(input_image)
+        input_batch = input_tensor.unsqueeze(0).to('cuda')
+        with torch.no_grad():
+            output = model(input_batch)
+
+        if isinstance(output, torch.Tensor):
+            output = output.squeeze(0)  # Remove batch dimension
+            output = torch.argmax(output, dim=0)  # Get class with highest probability
+            segmentation = output.byte().cpu().numpy()
+        else:
+            segmentation = output[0].argmax(dim=0).byte().cpu().numpy()
+
+        result = Image.fromarray(segmentation)
+        result = result.resize(input_image.size)
         return result
