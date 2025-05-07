@@ -13,7 +13,7 @@ class SVMLandUseClassifier:
         self.data = data
         # print(data.shape,'shape of data')
         # print(data.columns)
-        # print(data['Area_Sqm'])
+        print(data['Shape_Area'])
         # target_if_more_than_10000 = (self.data['Area_Sqm'] <= 10000)
         # print(target_if_more_than_10000)
 
@@ -34,7 +34,7 @@ class SVMLandUseClassifier:
         target_if_more_than_10000 = (self.data['Area_Sqm'] <= 10000)
 
         # my_df_feature = DataFrame({'lu_code':lu_code,'shape_area':shape_area,'area_sqm':area_sqm})
-        my_df_feature = DataFrame({'area_sqm': area_sqm})
+        my_df_feature = DataFrame({'area_sqm': area_sqm, 'shape_area': shape_area})
         clf = svm.SVC(gamma='scale',kernel='rbf')
         clf.fit(my_df_feature, target_if_more_than_10000)
         print('my score ',clf.score(my_df_feature, target_if_more_than_10000))
