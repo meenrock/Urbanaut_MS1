@@ -18,8 +18,6 @@ class SatelliteImageryDataset(torch.utils.data.Dataset):
 
         self.train = train
 
-        # Images ending with a filename ending with either 8 or 9
-        # are part of the validation set.
         if train:
             self.train_images_files = [
                 f

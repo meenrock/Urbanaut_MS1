@@ -20,7 +20,7 @@ from src.data_processing.models.svm_land_use import SVMLandUseClassifier
     traffic={"timeout": 20},
     http={"cors": {
             "enabled": True,
-            "access_control_allow_origins": ["http://localhost:4200", "https://myorg.com:8080"],
+            "access_control_allow_origins": ["http://localhost:4200", "https://supawatmeen.com"],
             "access_control_allow_methods": ["GET", "OPTIONS", "POST", "HEAD", "PUT"],
             "access_control_allow_credentials": True,
             "access_control_allow_headers": ["*"],
@@ -40,6 +40,10 @@ class MultiModelService:
         self.pipeline_a = pipeline(task="zero-shot-classification", model=self.model_a_path, hypothesis_template="This text is about {}")
         self.pipeline_b = pipeline(task="sentiment-analysis", model=self.model_b_path)
         self.pipeline_c = pipeline('summarization', model=self.model_c_path)
+
+    @bentoml.on_startup
+    def startup(self):
+        pass
 
     @bentoml.api
     def process_a(self, input_data: str, labels: List[str] = ["positive", "negative", "neutral"]) -> dict:
